@@ -1,0 +1,109 @@
+---
+title: "lab3 assignment"
+author: "qpchen"
+date: "2024-09-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Lab3 assignment: CTT reliability
+
+### Load packages:
+
+```{r}
+library(CTT)
+library("psych")
+library(dplyr)
+```
+
+### Load data
+
+```{r}
+CESD <- read.csv("CESD.csv")
+```
+
+### Preprocessing
+
+```{r}
+# Select the scale items for analysis:
+selected_items <- subset(CESD, select = c(item1:item20))
+# Reverse-code negatively oriented items:
+
+## Reverse-code items 4, 8, 12, & 16:
+
+### Identify items to re-code:
+items.to.recode <- c(4, 8, 12, 16)
+
+## Make a copy of the responses where you can store the re-coded version:
+selected_items_r <- selected_items
+
+## Re-code selected items:
+for(i in items.to.recode){
+  selected_items_r[, i][selected_items[, i]==4] <- 1
+  selected_items_r[, i][selected_items[, i]==3] <- 2
+  selected_items_r[, i][selected_items[, i]==2] <- 3
+  selected_items_r[, i][selected_items[, i]==1] <- 4
+  print(i)
+}
+
+```
+
+### Half-split reliability
+
+```{r}
+### Split-Halves Reliability
+
+## Note: We will use the splitHalf() function from the psych package.
+## This function calculates split half reliability as the mean of all possible item splits.
+
+# First, calculate inter-item correlations:
+inter.item.CESD <- cor(selected_items_r, method = "spearman")
+
+# view the results:
+inter.item.CESD
+
+# Apply the splitHalf() function:
+split.CESD <- splitHalf(inter.item.CESD, raw=FALSE, brute=TRUE, n.sample=10000,
+                     covar=FALSE, check.keys=TRUE,
+                     key=NULL, ci=.05, use="pairwise")
+
+# view the results:
+split.CESD
+```
+
+### Alpha
+
+```{r}
+### Internal Consistency
+
+### Calculate alpha with 95% confidence interval (CI):
+alpha_CESD <- psych::alpha(selected_items_r, n.iter = 1000)
+
+#### Show 95% CI:
+print(alpha_CESD$feldt )
+
+#### show alpha drop
+alpha_CESD$alpha.drop %>%
+    arrange(desc(`std.alpha`))
+
+#### show item total correlation
+alpha_CESD$item.stats%>%
+    arrange(`std.r`)
+```
+
+### Omega
+
+```{r}
+## Calculate omega:
+#* Sometimes it is necessary to install this pacakge
+#* (run the install() function below if you get an error)
+#install.packages("GPArotation")
+#library(GPArotation)
+
+omega_CESD <- omega(selected_items_r, plot = TRUE,nfactors = 1)
+omega_CESD$omega.tot
+
+```
